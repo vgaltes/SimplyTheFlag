@@ -40,20 +40,16 @@ fun initSSMLocalStack(): LocalStackContainer = LocalStackContainer(DockerImageNa
         start()
     }
 
-private fun buildClient(container: LocalStackContainer): SsmAsyncClient {
-    val ssmAsyncClient = SsmAsyncClient
-        .builder()
-        .endpointOverride(container.getEndpointOverride((LocalStackContainer.Service.SSM)))
-        .region(Region.of(container.region))
-        .credentialsProvider(
-            StaticCredentialsProvider.create(
-                AwsBasicCredentials.create(
-                    container.accessKey,
-                    container.secretKey,
-                ),
+private fun buildClient(container: LocalStackContainer): SsmAsyncClient = SsmAsyncClient
+    .builder()
+    .endpointOverride(container.getEndpointOverride((LocalStackContainer.Service.SSM)))
+    .region(Region.of(container.region))
+    .credentialsProvider(
+        StaticCredentialsProvider.create(
+            AwsBasicCredentials.create(
+                container.accessKey,
+                container.secretKey,
             ),
-        )
-        .build()
-
-    return ssmAsyncClient
-}
+        ),
+    )
+    .build()
