@@ -1,3 +1,4 @@
+import TestContainers.ssmLocalStack
 import com.vgaltes.simplytheflag.SimplyTheFlag
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
@@ -11,6 +12,10 @@ import software.amazon.awssdk.services.ssm.model.ParameterType
 import software.amazon.awssdk.services.ssm.model.PutParameterRequest
 import java.util.UUID
 
+object TestContainers {
+    val ssmLocalStack = initSSMLocalStack()
+}
+
 class SimplyTheFlagShould: StringSpec( {
     "should read a boolean flag" {
         val name = "name-${UUID.randomUUID()}"
@@ -23,7 +28,26 @@ class SimplyTheFlagShould: StringSpec( {
                 }
             }
         """.trimIndent()
-        val ssmLocalStack = initSSMLocalStack()
+        val client = buildClient(ssmLocalStack)
+        val flags = SimplyTheFlag(client)
+
+        client.putParameter(PutParameterRequest.builder().type(ParameterType.STRING).name(name).value(value).build()).join()
+
+        flags.isEnabled(name) shouldBe true
+        true shouldBe true
+    }
+
+    "should read a fromDate flag" {
+        val name = "name-${UUID.randomUUID()}"
+        val value = """
+            {
+                "type": "FromDateFlag",
+                "cacheMillis": 2000,
+                "parameters": {
+                    "validFrom": "2022-09-28T06:17:28.106380917Z"
+                }
+            }
+        """.trimIndent()
         val client = buildClient(ssmLocalStack)
         val flags = SimplyTheFlag(client)
 

@@ -31,6 +31,7 @@ dependencies {
 
 tasks.withType<Test>{
     useJUnitPlatform()
+    maxHeapSize = "1g"
 
     testLogging {
         events(FAILED, STANDARD_ERROR, SKIPPED)

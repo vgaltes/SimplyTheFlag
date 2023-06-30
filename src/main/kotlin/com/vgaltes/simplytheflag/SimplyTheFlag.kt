@@ -20,8 +20,8 @@ class SimplyTheFlag(private val ssmClient: SsmAsyncClient) {
             val value = if (Duration.between(lastAccessToParameter, Instant.now()) > cacheDuration) {
                 val result = ssmClient.getParameter(GetParameterRequest.builder().name(flagName).build()).join()
                 val rawFlag = result.parameter().value()
-                val flag = createFlag(rawFlag)
-                val value = flag.evaluate(0)
+                val flag = createFlag(rawFlag) // treure aixo a fora pq pugui accedir a cacheMillis. Fer test
+                val value = flag.evaluate()
                 lastAccesses[flagName] = ValueOnInstant(Instant.now(), value)
                 value
             }
@@ -86,5 +86,5 @@ class SimplyTheFlag(private val ssmClient: SsmAsyncClient) {
 interface Flag {
     val type: String
     val cacheMillis: Long
-    fun evaluate(value: Any): Boolean
+    fun evaluate(): Boolean
 }
