@@ -1,10 +1,8 @@
+import JacksonModule.OBJECT_MAPPER
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider
 import software.amazon.awssdk.auth.credentials.ProfileCredentialsProvider
 import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.ssm.SsmAsyncClient
-import software.amazon.awssdk.services.ssm.model.GetParameterRequest
-import java.time.Duration
-import java.time.Instant
 
 fun main(args: Array<String>) {
     println("Hello World!")
@@ -33,32 +31,24 @@ private fun buildClient(credentialsProvider: AwsCredentialsProvider, region: Reg
         .credentialsProvider(credentialsProvider)
         .build()
 
-class SimplyTheFlag(private val ssmClient: SsmAsyncClient) {
+interface Flag {
+    val type: String
+    val cacheMillis: Long
+    fun evaluate(value: Any): Boolean
+}
 
-    private val cacheDuration: Duration = Duration.ofSeconds(5)
-    private var lastAccesses = mutableMapOf<String, ValueOnInstant>()
 
-    fun isEnabled(flagName: String): String {
-        val lastAccessToParameter = lastAccesses[flagName]?.accessedAt ?: Instant.MIN
+class BooleanFlag(override val cacheMillis: Long, private val rawParameters: String) : Flag {
+    private var enabled = false
+    override val type: String
+        get() = BooleanFlag::class.java.typeName
 
-        try {
-            val value = if (Duration.between(lastAccessToParameter, Instant.now()) > cacheDuration) {
-                val result = ssmClient.getParameter(GetParameterRequest.builder().name(flagName).build()).join()
-                val value = result.parameter().value()
-                lastAccesses[flagName] = ValueOnInstant(Instant.now(), value)
-                println("get from ssm")
-                value
-            }
-            else {
-                println("get from cache")
-                lastAccesses[flagName]!!.value
-            }
-
-            return value
-        } catch (e:Exception){
-            return "error"
-        }
+    override fun evaluate(value: Any): Boolean {
+        return enabled
     }
 
-    data class ValueOnInstant(val accessedAt: Instant, val value: String)
+    init {
+        val jsonNode = OBJECT_MAPPER.readTree(rawParameters)
+        enabled = jsonNode["enabled"].asBoolean()
+    }
 }

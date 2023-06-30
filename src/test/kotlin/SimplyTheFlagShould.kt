@@ -6,25 +6,31 @@ import software.amazon.awssdk.auth.credentials.AwsBasicCredentials
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider
 import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.ssm.SsmAsyncClient
-import software.amazon.awssdk.services.ssm.model.GetParameterRequest
 import software.amazon.awssdk.services.ssm.model.ParameterType
 import software.amazon.awssdk.services.ssm.model.PutParameterRequest
 import java.util.UUID
 
 class SimplyTheFlagShould: StringSpec( {
-    "pass the test" {
+    "should read a boolean flag" {
         val name = "name-${UUID.randomUUID()}"
-        val value = "value-${UUID.randomUUID()}"
+        val value = """
+            {
+                "type": "BooleanFlag",
+                "cacheMillis": 2000,
+                "parameters": {
+                    "enabled": true
+                }
+            }
+        """.trimIndent()
         val ssmLocalStack = initSSMLocalStack()
         val client = buildClient(ssmLocalStack)
         val flags = SimplyTheFlag(client)
 
         client.putParameter(PutParameterRequest.builder().type(ParameterType.STRING).name(name).value(value).build()).join()
 
-        flags.isEnabled(name) shouldBe value
+        flags.isEnabled(name) shouldBe true
         true shouldBe true
     }
-
 })
 
 fun initSSMLocalStack(): LocalStackContainer = LocalStackContainer(DockerImageName.parse("localstack/localstack:2.1.0"))

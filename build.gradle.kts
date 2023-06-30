@@ -18,6 +18,8 @@ dependencies {
     implementation("com.amazonaws:aws-java-sdk:1.12.496")
     implementation("software.amazon.awssdk:ssm:2.20.94")
     api("org.testcontainers:localstack:1.18.3")
+    api("com.fasterxml.jackson.module:jackson-module-kotlin")
+    api("com.fasterxml.jackson.datatype:jackson-datatype-jsr310")
 
     val kotestVersion = "5.4.1"
     testImplementation("io.kotest:kotest-runner-junit5:$kotestVersion")
