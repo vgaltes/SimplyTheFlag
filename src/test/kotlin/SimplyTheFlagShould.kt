@@ -9,22 +9,19 @@ import software.amazon.awssdk.services.ssm.SsmAsyncClient
 import software.amazon.awssdk.services.ssm.model.GetParameterRequest
 import software.amazon.awssdk.services.ssm.model.ParameterType
 import software.amazon.awssdk.services.ssm.model.PutParameterRequest
+import java.util.UUID
 
 class SimplyTheFlagShould: StringSpec( {
     "pass the test" {
+        val name = "name-${UUID.randomUUID()}"
+        val value = "value-${UUID.randomUUID()}"
         val ssmLocalStack = initSSMLocalStack()
-
         val client = buildClient(ssmLocalStack)
-
         val flags = SimplyTheFlag(client)
 
-        client.putParameter(PutParameterRequest.builder().type(ParameterType.STRING).name("patata").value("potato").build()).join()
+        client.putParameter(PutParameterRequest.builder().type(ParameterType.STRING).name(name).value(value).build()).join()
 
-        val parameter = client.getParameter(GetParameterRequest.builder().name("patata").build()).join()
-
-        parameter.parameter().value() shouldBe "potato"
-
-        flags.isEnabled("patata") shouldBe "potato"
+        flags.isEnabled(name) shouldBe value
         true shouldBe true
     }
 
@@ -32,7 +29,7 @@ class SimplyTheFlagShould: StringSpec( {
 
 fun initSSMLocalStack(): LocalStackContainer = LocalStackContainer(DockerImageName.parse("localstack/localstack:2.1.0"))
     .withServices(LocalStackContainer.Service.SSM)
-    .withReuse(false)
+    .withReuse(true)
     .apply {
         start()
     }
