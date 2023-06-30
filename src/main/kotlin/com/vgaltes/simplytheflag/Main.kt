@@ -1,4 +1,5 @@
-import JacksonModule.OBJECT_MAPPER
+package com.vgaltes.simplytheflag
+
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider
 import software.amazon.awssdk.auth.credentials.ProfileCredentialsProvider
 import software.amazon.awssdk.regions.Region
@@ -31,24 +32,6 @@ private fun buildClient(credentialsProvider: AwsCredentialsProvider, region: Reg
         .credentialsProvider(credentialsProvider)
         .build()
 
-interface Flag {
-    val type: String
-    val cacheMillis: Long
-    fun evaluate(value: Any): Boolean
-}
 
 
-class BooleanFlag(override val cacheMillis: Long, private val rawParameters: String) : Flag {
-    private var enabled = false
-    override val type: String
-        get() = BooleanFlag::class.java.typeName
 
-    override fun evaluate(value: Any): Boolean {
-        return enabled
-    }
-
-    init {
-        val jsonNode = OBJECT_MAPPER.readTree(rawParameters)
-        enabled = jsonNode["enabled"].asBoolean()
-    }
-}

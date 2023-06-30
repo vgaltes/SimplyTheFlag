@@ -1,3 +1,4 @@
+import com.vgaltes.simplytheflag.SimplyTheFlag
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
 import org.testcontainers.containers.localstack.LocalStackContainer
