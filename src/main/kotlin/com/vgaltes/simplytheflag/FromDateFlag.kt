@@ -8,7 +8,7 @@ class FromDateFlag(override val cacheMillis: Long, private val rawParameters: St
     override val type: String
         get() = FromDateFlag::class.java.typeName
 
-    override fun evaluate(): Boolean {
+    override fun isEnabled(): Boolean {
         return Instant.now() >= validFrom
     }
 
