@@ -15,25 +15,19 @@ class SimplyTheFlag(private val ssmClient: SsmAsyncClient) {
     fun isEnabled(flagName: String): Boolean {
         try {
             val lastRetrievedFlagValue = flagsRetrieved[flagName]
-            if(lastRetrievedFlagValue == null)
-            {
-                val flagValueFromProvider = retrieveFlagValueFromProvider(flagName)
-                flagsRetrieved[flagName] = flagValueFromProvider
-                return flagValueFromProvider.value
-            }
-            else {
-                val flagRetrievedAt = lastRetrievedFlagValue.retrievedAt
 
-                val cachedValue = if(flagRetrievedAt + lastRetrievedFlagValue.cacheDuration < Instant.now()) {
-                    val value = retrieveFlagValueFromProvider(flagName)
-                    flagsRetrieved[flagName] = value
-                    value
-                } else {
-                    flagsRetrieved[flagName]!!
-                }
+            val flagRetrievedAt = lastRetrievedFlagValue?.retrievedAt ?: Instant.MIN
+            val cacheDuration = lastRetrievedFlagValue?.cacheDuration ?: Duration.ZERO
 
-                return cachedValue.value
+            val cachedValue = if(flagRetrievedAt + cacheDuration < Instant.now()) {
+                val value = retrieveFlagValueFromProvider(flagName)
+                flagsRetrieved[flagName] = value
+                value
+            } else {
+                flagsRetrieved[flagName]!!
             }
+
+            return cachedValue.value
         }
         catch (e: Exception) {
             return false
