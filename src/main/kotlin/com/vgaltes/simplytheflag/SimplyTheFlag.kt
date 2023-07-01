@@ -9,30 +9,43 @@ import java.time.Instant
 
 class SimplyTheFlag(private val ssmClient: SsmAsyncClient) {
 
-    private val cacheDuration: Duration = Duration.ofSeconds(5)
-    private val lastAccesses = mutableMapOf<String, ValueOnInstant>()
+    private val flagsRetrieved = mutableMapOf<String, CachedValue>()
     private val availableFlags = mutableMapOf<String, String>()
 
     fun isEnabled(flagName: String): Boolean {
-        val lastAccessToParameter = lastAccesses[flagName]?.accessedAt ?: Instant.MIN
-
         try {
-            val value = if (Duration.between(lastAccessToParameter, Instant.now()) > cacheDuration) {
-                val result = ssmClient.getParameter(GetParameterRequest.builder().name(flagName).build()).join()
-                val rawFlag = result.parameter().value()
-                val flag = createFlag(rawFlag) // treure aixo a fora pq pugui accedir a cacheMillis. Fer test
-                val value = flag.isEnabled()
-                lastAccesses[flagName] = ValueOnInstant(Instant.now(), value)
-                value
+            val lastRetrievedFlagValue = flagsRetrieved[flagName]
+            if(lastRetrievedFlagValue == null)
+            {
+                val flagValueFromProvider = retrieveFlagValueFromProvider(flagName)
+                flagsRetrieved[flagName] = flagValueFromProvider
+                return flagValueFromProvider.value
             }
             else {
-                lastAccesses[flagName]!!.value
-            }
+                val flagRetrievedAt = lastRetrievedFlagValue.retrievedAt
 
-            return value
-        } catch (e:Exception){
+                val cachedValue = if(flagRetrievedAt + lastRetrievedFlagValue.cacheDuration < Instant.now()) {
+                    val value = retrieveFlagValueFromProvider(flagName)
+                    flagsRetrieved[flagName] = value
+                    value
+                } else {
+                    flagsRetrieved[flagName]!!
+                }
+
+                return cachedValue.value
+            }
+        }
+        catch (e: Exception) {
             return false
         }
+    }
+
+    private fun retrieveFlagValueFromProvider(flagName: String): CachedValue {
+        val result = ssmClient.getParameter(GetParameterRequest.builder().name(flagName).build()).join()
+        val rawFlag = result.parameter().value()
+        val flag = createFlag(rawFlag)
+        val value = flag.isEnabled()
+        return CachedValue(Instant.now(), Duration.ofMillis(flag.cacheMillis), value)
     }
 
     private fun createFlag(rawFlag: String): Flag {
@@ -45,7 +58,7 @@ class SimplyTheFlag(private val ssmClient: SsmAsyncClient) {
         return booleanFlag as Flag
     }
 
-    data class ValueOnInstant(val accessedAt: Instant, val value: Boolean)
+    data class CachedValue(val retrievedAt: Instant, val cacheDuration: Duration, val value: Boolean)
 
     init {
         findFlags()

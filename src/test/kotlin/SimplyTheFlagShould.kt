@@ -19,22 +19,13 @@ object TestContainers {
 class SimplyTheFlagShould: StringSpec( {
     "should read a boolean flag" {
         val name = "name-${UUID.randomUUID()}"
-        val value = """
-            {
-                "type": "BooleanFlag",
-                "cacheMillis": 2000,
-                "parameters": {
-                    "enabled": true
-                }
-            }
-        """.trimIndent()
+        val value = booleanFlagWithCache(2000, true)
         val client = buildClient(ssmLocalStack)
         val flags = SimplyTheFlag(client)
 
         client.putParameter(PutParameterRequest.builder().type(ParameterType.STRING).name(name).value(value).build()).join()
 
         flags.isEnabled(name) shouldBe true
-        true shouldBe true
     }
 
     "should read a fromDate flag" {
@@ -54,9 +45,36 @@ class SimplyTheFlagShould: StringSpec( {
         client.putParameter(PutParameterRequest.builder().type(ParameterType.STRING).name(name).value(value).build()).join()
 
         flags.isEnabled(name) shouldBe true
-        true shouldBe true
+    }
+
+    "should take cache into account" {
+        val name = "name-${UUID.randomUUID()}"
+        var value = booleanFlagWithCache(0, true)
+        val client = buildClient(ssmLocalStack)
+        val flags = SimplyTheFlag(client)
+
+        client.putParameter(PutParameterRequest.builder().type(ParameterType.STRING).name(name).value(value).build()).join()
+        flags.isEnabled(name) shouldBe true
+
+        value = booleanFlagWithCache(2000, false)
+        client.putParameter(PutParameterRequest.builder().type(ParameterType.STRING).name(name).value(value).overwrite(true).build()).join()
+        flags.isEnabled(name) shouldBe false
+
+        value = booleanFlagWithCache(2000, true)
+        client.putParameter(PutParameterRequest.builder().type(ParameterType.STRING).name(name).value(value).overwrite(true).build()).join()
+        flags.isEnabled(name) shouldBe false
     }
 })
+
+private fun booleanFlagWithCache(millis: Long, enabled: Boolean): String = """
+        {
+            "type": "BooleanFlag",
+            "cacheMillis": $millis,
+            "parameters": {
+                "enabled": $enabled
+            }
+        }
+    """.trimIndent()
 
 fun initSSMLocalStack(): LocalStackContainer = LocalStackContainer(DockerImageName.parse("localstack/localstack:2.1.0"))
     .withServices(LocalStackContainer.Service.SSM)
