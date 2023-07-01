@@ -1,4 +1,5 @@
 import TestContainers.ssmLocalStack
+import com.vgaltes.simplytheflag.SSMValueRetriever
 import com.vgaltes.simplytheflag.SimplyTheFlag
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
@@ -21,7 +22,7 @@ class SimplyTheFlagShould: StringSpec( {
         val name = "name-${UUID.randomUUID()}"
         val value = booleanFlagWithCache(2000, true)
         val client = buildClient(ssmLocalStack)
-        val flags = SimplyTheFlag(client)
+        val flags = SimplyTheFlag(SSMValueRetriever(client))
 
         client.putParameter(PutParameterRequest.builder().type(ParameterType.STRING).name(name).value(value).build()).join()
 
@@ -40,7 +41,7 @@ class SimplyTheFlagShould: StringSpec( {
             }
         """.trimIndent()
         val client = buildClient(ssmLocalStack)
-        val flags = SimplyTheFlag(client)
+        val flags = SimplyTheFlag(SSMValueRetriever(client))
 
         client.putParameter(PutParameterRequest.builder().type(ParameterType.STRING).name(name).value(value).build()).join()
 
@@ -51,7 +52,7 @@ class SimplyTheFlagShould: StringSpec( {
         val name = "name-${UUID.randomUUID()}"
         var value = booleanFlagWithCache(0, true)
         val client = buildClient(ssmLocalStack)
-        val flags = SimplyTheFlag(client)
+        val flags = SimplyTheFlag(SSMValueRetriever(client))
 
         client.putParameter(PutParameterRequest.builder().type(ParameterType.STRING).name(name).value(value).build()).join()
         flags.isEnabled(name) shouldBe true

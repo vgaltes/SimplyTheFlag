@@ -7,7 +7,7 @@ import java.net.URL
 import java.time.Duration
 import java.time.Instant
 
-class SimplyTheFlag(private val ssmClient: SsmAsyncClient) {
+class SimplyTheFlag(private val valueRetriever: ValueRetriever) {
 
     private val flagsRetrieved = mutableMapOf<String, CachedValue>()
     private val availableFlags = mutableMapOf<String, String>()
@@ -35,8 +35,7 @@ class SimplyTheFlag(private val ssmClient: SsmAsyncClient) {
     }
 
     private fun retrieveFlagValueFromProvider(flagName: String): CachedValue {
-        val result = ssmClient.getParameter(GetParameterRequest.builder().name(flagName).build()).join()
-        val rawFlag = result.parameter().value()
+        val rawFlag = valueRetriever.retrieve(flagName)
         val flag = createFlag(rawFlag)
         val value = flag.isEnabled()
         return CachedValue(Instant.now(), Duration.ofMillis(flag.cacheMillis), value)
@@ -94,4 +93,15 @@ interface Flag {
     val type: String
     val cacheMillis: Long
     fun isEnabled(): Boolean
+}
+
+interface ValueRetriever {
+    fun retrieve(flagName: String): String
+}
+
+class SSMValueRetriever(private val ssmClient: SsmAsyncClient) : ValueRetriever{
+    override fun retrieve(flagName: String): String {
+        val result = ssmClient.getParameter(GetParameterRequest.builder().name(flagName).build()).join()
+        return result.parameter().value()
+    }
 }
