@@ -80,7 +80,7 @@ class SimplyTheFlag(private val valueRetriever: ValueRetriever) {
                         .replace('/', '.')
                     val fullyQualifiedClassName = "$packageName.$className"
 
-                    val isFlag = Class.forName(fullyQualifiedClassName).interfaces.any { i -> i.simpleName == "Flag" }
+                    val isFlag = Class.forName(fullyQualifiedClassName).interfaces.any { i -> i.simpleName == Flag::class.java.simpleName }
                     if (isFlag) {
                         availableFlags[className] = fullyQualifiedClassName
                     }
