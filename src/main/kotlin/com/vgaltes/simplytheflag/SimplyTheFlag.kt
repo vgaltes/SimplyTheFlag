@@ -11,9 +11,11 @@ class SimplyTheFlag(private val valueRetriever: ValueRetriever) {
 
     private val flagsRetrieved = mutableMapOf<String, CachedValue>()
     private val availableFlags = mutableMapOf<String, String>()
+    private val lastErrors = mutableMapOf<String, Exception>()
 
     fun isEnabled(flagName: String): Boolean {
         try {
+            lastErrors.remove(flagName)
             val lastRetrievedFlagValue = flagsRetrieved[flagName]
 
             val flagRetrievedAt = lastRetrievedFlagValue?.retrievedAt ?: Instant.MIN
@@ -30,8 +32,16 @@ class SimplyTheFlag(private val valueRetriever: ValueRetriever) {
             return cachedValue.value
         }
         catch (e: Exception) {
+            lastErrors[flagName] = e
             return false
         }
+    }
+
+    fun hasFailed(flagName: String): Boolean = lastErrors.containsKey(flagName)
+    fun lastError(flagName: String): Exception? = lastErrors[flagName]
+
+    init {
+        findFlags()
     }
 
     private fun retrieveFlagValueFromProvider(flagName: String): CachedValue {
@@ -52,10 +62,6 @@ class SimplyTheFlag(private val valueRetriever: ValueRetriever) {
     }
 
     data class CachedValue(val retrievedAt: Instant, val cacheDuration: Duration, val value: Boolean)
-
-    init {
-        findFlags()
-    }
 
     private fun findFlags() {
         // Translate the package name into an absolute path

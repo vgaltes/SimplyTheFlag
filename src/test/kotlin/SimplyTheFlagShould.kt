@@ -3,6 +3,7 @@ import com.vgaltes.simplytheflag.SSMValueRetriever
 import com.vgaltes.simplytheflag.SimplyTheFlag
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
 import org.testcontainers.containers.localstack.LocalStackContainer
 import org.testcontainers.utility.DockerImageName
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials
@@ -58,6 +59,26 @@ class SimplyTheFlagShould: StringSpec( {
         client.putParameter(PutParameterRequest.builder().type(ParameterType.STRING).name(name).value(value).overwrite(true).build()).join()
         flags.isEnabled(name) shouldBe false
     }
+
+    "should return false and error if the configuration of the flag is invalid" {
+        val name = "name-${UUID.randomUUID()}"
+        val invalidValue = invalidBooleanFlag()
+        val client = buildClient(ssmLocalStack)
+        val flags = SimplyTheFlag(SSMValueRetriever(client))
+
+        client.putParameter(PutParameterRequest.builder().type(ParameterType.STRING).name(name).value(invalidValue).build()).join()
+
+        flags.isEnabled(name) shouldBe false
+        flags.hasFailed(name) shouldBe true
+        flags.lastError(name) shouldNotBe null
+
+        val validValue = booleanFlagWithCache(2000, true)
+        client.putParameter(PutParameterRequest.builder().type(ParameterType.STRING).name(name).value(validValue).overwrite(true).build()).join()
+
+        flags.isEnabled(name) shouldBe true
+        flags.hasFailed(name) shouldBe false
+        flags.lastError(name) shouldBe null
+    }
 })
 
 private fun dateFromFlag(validFrom: Instant): String = """
@@ -76,6 +97,16 @@ private fun booleanFlagWithCache(millis: Long, enabled: Boolean): String = """
             "cacheMillis": $millis,
             "parameters": {
                 "enabled": $enabled
+            }
+        }
+    """.trimIndent()
+
+private fun invalidBooleanFlag(): String = """
+        {
+            "type": "BooleanFlag",
+            "cacheMillis": 2000,
+            "parameters": {
+                "enabled_wrongly_written": true
             }
         }
     """.trimIndent()
