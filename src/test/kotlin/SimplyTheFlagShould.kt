@@ -11,6 +11,7 @@ import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.ssm.SsmAsyncClient
 import software.amazon.awssdk.services.ssm.model.ParameterType
 import software.amazon.awssdk.services.ssm.model.PutParameterRequest
+import java.time.Instant
 import java.util.UUID
 
 object TestContainers {
@@ -31,15 +32,7 @@ class SimplyTheFlagShould: StringSpec( {
 
     "should read a fromDate flag" {
         val name = "name-${UUID.randomUUID()}"
-        val value = """
-            {
-                "type": "FromDateFlag",
-                "cacheMillis": 2000,
-                "parameters": {
-                    "validFrom": "2022-09-28T06:17:28.106380917Z"
-                }
-            }
-        """.trimIndent()
+        val value = dateFromFlag(Instant.now().minusSeconds(60))
         val client = buildClient(ssmLocalStack)
         val flags = SimplyTheFlag(SSMValueRetriever(client))
 
@@ -66,6 +59,16 @@ class SimplyTheFlagShould: StringSpec( {
         flags.isEnabled(name) shouldBe false
     }
 })
+
+private fun dateFromFlag(validFrom: Instant): String = """
+        {
+            "type": "FromDateFlag",
+            "cacheMillis": 2000,
+            "parameters": {
+                "validFrom": "$validFrom"
+            }
+        }
+    """.trimIndent()
 
 private fun booleanFlagWithCache(millis: Long, enabled: Boolean): String = """
         {
