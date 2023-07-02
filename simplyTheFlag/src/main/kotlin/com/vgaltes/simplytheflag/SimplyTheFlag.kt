@@ -4,8 +4,7 @@ import java.time.Duration
 import java.time.Instant
 
 
-class SimplyTheFlag(private val valueRetriever: ValueRetriever, vararg packageNames: String) {
-
+class SimplyTheFlag(private val valueRetriever: ValueRetriever, vararg additionalPackageNames: String) {
     private val flagsRetrieved = mutableMapOf<String, CachedValue>()
     private val availableFlags = mutableMapOf<String, String>()
     private val lastErrors = mutableMapOf<String, Exception>()
@@ -37,7 +36,8 @@ class SimplyTheFlag(private val valueRetriever: ValueRetriever, vararg packageNa
     fun lastError(flagName: String): Exception? = lastErrors[flagName]
 
     init {
-        packageNames.forEach {
+        getClassesForPackage("com.vgaltes.simplytheflag", availableFlags)
+        additionalPackageNames.forEach {
             getClassesForPackage(it, availableFlags)
         }
     }
@@ -81,4 +81,3 @@ interface Flag {
 interface ValueRetriever {
     fun retrieve(flagName: String): String
 }
-
