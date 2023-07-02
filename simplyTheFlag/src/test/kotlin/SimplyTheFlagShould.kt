@@ -1,6 +1,7 @@
 import TestContainers.ssmLocalStack
 import com.vgaltes.simplytheflag.SSMValueRetriever
 import com.vgaltes.simplytheflag.SimplyTheFlag
+import com.vgaltes.simplytheflag.SimplyTheFlag.FlagState.*
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
@@ -28,7 +29,7 @@ class SimplyTheFlagShould: StringSpec( {
 
         client.putParameter(PutParameterRequest.builder().type(ParameterType.STRING).name(name).value(value).build()).join()
 
-        flags.isEnabled(name) shouldBe true
+        flags.state(name) shouldBe ENABLED
     }
 
     "should read a fromDate flag" {
@@ -39,7 +40,7 @@ class SimplyTheFlagShould: StringSpec( {
 
         client.putParameter(PutParameterRequest.builder().type(ParameterType.STRING).name(name).value(value).build()).join()
 
-        flags.isEnabled(name) shouldBe true
+        flags.state(name) shouldBe ENABLED
     }
 
     "should take cache into account" {
@@ -49,15 +50,15 @@ class SimplyTheFlagShould: StringSpec( {
         val flags = SimplyTheFlag(SSMValueRetriever(client), "com.vgaltes.simplytheflag")
 
         client.putParameter(PutParameterRequest.builder().type(ParameterType.STRING).name(name).value(value).build()).join()
-        flags.isEnabled(name) shouldBe true
+        flags.state(name) shouldBe ENABLED
 
         value = booleanFlagWithCache(2000, false)
         client.putParameter(PutParameterRequest.builder().type(ParameterType.STRING).name(name).value(value).overwrite(true).build()).join()
-        flags.isEnabled(name) shouldBe false
+        flags.state(name) shouldBe DISABLED
 
         value = booleanFlagWithCache(2000, true)
         client.putParameter(PutParameterRequest.builder().type(ParameterType.STRING).name(name).value(value).overwrite(true).build()).join()
-        flags.isEnabled(name) shouldBe false
+        flags.state(name) shouldBe DISABLED
     }
 
     "should return false and error if the configuration of the flag is invalid" {
@@ -68,15 +69,13 @@ class SimplyTheFlagShould: StringSpec( {
 
         client.putParameter(PutParameterRequest.builder().type(ParameterType.STRING).name(name).value(invalidValue).build()).join()
 
-        flags.isEnabled(name) shouldBe false
-        flags.hasFailed(name) shouldBe true
+        flags.state(name) shouldBe ERROR
         flags.lastError(name) shouldNotBe null
 
         val validValue = booleanFlagWithCache(2000, true)
         client.putParameter(PutParameterRequest.builder().type(ParameterType.STRING).name(name).value(validValue).overwrite(true).build()).join()
 
-        flags.isEnabled(name) shouldBe true
-        flags.hasFailed(name) shouldBe false
+        flags.state(name) shouldBe ENABLED
         flags.lastError(name) shouldBe null
     }
 })

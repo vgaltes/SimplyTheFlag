@@ -1,9 +1,5 @@
 package com.vgaltes.simplytheflag
 
-import software.amazon.awssdk.services.ssm.SsmAsyncClient
-import software.amazon.awssdk.services.ssm.model.GetParameterRequest
-import java.io.File
-import java.net.URL
 import java.time.Duration
 import java.time.Instant
 
@@ -14,7 +10,7 @@ class SimplyTheFlag(private val valueRetriever: ValueRetriever, vararg packageNa
     private val availableFlags = mutableMapOf<String, String>()
     private val lastErrors = mutableMapOf<String, Exception>()
 
-    fun isEnabled(flagName: String, vararg parameters: Any?): Boolean {
+    fun state(flagName: String, vararg parameters: Any?): FlagState {
         try {
             lastErrors.remove(flagName)
             val lastRetrievedFlagValue = flagsRetrieved[flagName]
@@ -30,20 +26,18 @@ class SimplyTheFlag(private val valueRetriever: ValueRetriever, vararg packageNa
                 flagsRetrieved[flagName]!!
             }
 
-            return cachedValue.value
+            return FlagState.from(cachedValue.value)
         }
         catch (e: Exception) {
             lastErrors[flagName] = e
-            return false
+            return FlagState.ERROR
         }
     }
 
-    fun hasFailed(flagName: String): Boolean = lastErrors.containsKey(flagName)
     fun lastError(flagName: String): Exception? = lastErrors[flagName]
 
     init {
         packageNames.forEach {
-            // findFlags(it)
             getClassesForPackage(it, availableFlags)
         }
     }
@@ -67,33 +61,13 @@ class SimplyTheFlag(private val valueRetriever: ValueRetriever, vararg packageNa
 
     data class CachedValue(val retrievedAt: Instant, val cacheDuration: Duration, val value: Boolean)
 
-    private fun findFlags(packageName: String) {
-        // Translate the package name into an absolute path
-        var name = packageName
-        if (!name.startsWith("/")) {
-            name = "/$name"
-        }
-        name = name.replace('.', '/')
-        // Get a File object for the package
-        val url: URL = SimplyTheFlag::class.java.getResource(name)
-        val directory = File(url.file)
+    enum class FlagState {
+        ENABLED,
+        DISABLED,
+        ERROR;
 
-        if (directory.exists()) {
-            // Get the list of the files contained in the package
-            directory.walk()
-                .filter { f -> f.isFile && !f.name.contains('$') && f.name.endsWith(".class") }
-                .forEach { it ->
-                    val className = it.canonicalPath.removePrefix(directory.canonicalPath)
-                        .dropLast(6) // remove .class
-                        .drop(1) // drop initial .
-                        .replace('/', '.')
-                    val fullyQualifiedClassName = "$packageName.$className"
-
-                    val isFlag = Class.forName(fullyQualifiedClassName).interfaces.any { i -> i.simpleName == Flag::class.java.simpleName }
-                    if (isFlag) {
-                        availableFlags[className] = fullyQualifiedClassName
-                    }
-                }
+        companion object {
+            fun from(value: Boolean) : FlagState = if (value) ENABLED else DISABLED
         }
     }
 }
@@ -108,9 +82,3 @@ interface ValueRetriever {
     fun retrieve(flagName: String): String
 }
 
-class SSMValueRetriever(private val ssmClient: SsmAsyncClient) : ValueRetriever{
-    override fun retrieve(flagName: String): String {
-        val result = ssmClient.getParameter(GetParameterRequest.builder().name(flagName).build()).join()
-        return result.parameter().value()
-    }
-}
