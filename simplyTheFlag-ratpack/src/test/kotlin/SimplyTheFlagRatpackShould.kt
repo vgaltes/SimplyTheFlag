@@ -45,6 +45,38 @@ class SimplyTheFlagRatpackShould : StringSpec({
         response2.status shouldBe Status.OK
         response2.body.text shouldBe "headerNotExists"
     }
+
+    "return true if the header has the expected value" {
+        val app = TestApplication()
+        val headerName = "name-${UUID.randomUUID()}"
+        val expectedValue = "value-${UUID.randomUUID()}"
+        val value = """
+            {
+                "type": "HeaderHasValueFlag",
+                "cacheMillis": 0,
+                "parameters": {
+                    "headerName": "$headerName",
+                    "expectedValue": "$expectedValue"
+                }
+            }
+        """.trimMargin()
+        val client = buildClient(TestApp.localStackContainer)
+        client.putParameter(PutParameterRequest.builder().type(ParameterType.STRING).name("headerHasValueFlag").value(value).overwrite(true).build()).join()
+        val response = app.httpClient.request("headerHasValue") { requestSpec ->
+            requestSpec.headers.add(headerName, expectedValue)
+            requestSpec.method(HttpMethod.GET)
+        }
+
+        response.status shouldBe Status.OK
+        response.body.text shouldBe "headerHasValue"
+
+        val response2 = app.httpClient.request("headerHasValue") { requestSpec ->
+            requestSpec.method(HttpMethod.GET)
+        }
+
+        response2.status shouldBe Status.OK
+        response2.body.text shouldBe "headerNotHasValue"
+    }
 })
 
 private fun buildClient(container: LocalStackContainer): SsmAsyncClient = SsmAsyncClient

@@ -27,7 +27,9 @@ object TestApp {
                 bindings.module(TestModule::class.java)
             })
             .handlers { chain ->
-                chain.get("headerExists", HeaderExistsHandler::class.java)
+                chain
+                    .get("headerExists", HeaderExistsHandler::class.java)
+                    .get("headerHasValue", HeaderHasValueHandler::class.java)
             }
         }
     }
@@ -57,6 +59,14 @@ class TestModule : AbstractModule() {
         return HeaderExistsHandler(simplyTheFlag)
     }
 
+    @Singleton
+    @Provides
+    fun getHeaderHasValueHandler(
+        simplyTheFlag: SimplyTheFlag
+    ) : HeaderHasValueHandler {
+        return HeaderHasValueHandler(simplyTheFlag)
+    }
+
     private fun buildClient(container: LocalStackContainer): SsmAsyncClient = SsmAsyncClient
         .builder()
         .endpointOverride(container.getEndpointOverride((LocalStackContainer.Service.SSM)))
@@ -78,5 +88,12 @@ class HeaderExistsHandler(private val flag: SimplyTheFlag) : Handler {
             ctx.response.status(200).send("headerExists")
         else ctx.response.status(200).send("headerNotExists")
     }
+}
 
+class HeaderHasValueHandler(private val flag: SimplyTheFlag) : Handler {
+    override fun handle(ctx: Context) {
+        if(flag.state("headerHasValueFlag", ctx) == ENABLED)
+            ctx.response.status(200).send("headerHasValue")
+        else ctx.response.status(200).send("headerNotHasValue")
+    }
 }
