@@ -7,16 +7,10 @@ plugins {
     application
 }
 
-group = "org.vgaltes"
-version = "1.0-SNAPSHOT"
-
-repositories {
-    mavenCentral()
-}
-/*
 dependencies {
     implementation("com.amazonaws:aws-java-sdk:1.12.496")
     implementation("software.amazon.awssdk:ssm:2.20.94")
+    implementation("org.jetbrains.kotlin:kotlin-reflect:1.8.22")
     api("org.testcontainers:localstack:1.18.3")
     api("com.fasterxml.jackson.module:jackson-module-kotlin")
     api("com.fasterxml.jackson.datatype:jackson-datatype-jsr310")
@@ -29,8 +23,10 @@ dependencies {
     testImplementation("org.testcontainers:testcontainers:1.17.6")
 }
 
- */
-/*
+repositories {
+    mavenCentral()
+}
+
 tasks.withType<Test>{
     useJUnitPlatform()
     maxHeapSize = "1g"
@@ -49,7 +45,6 @@ tasks.withType<KotlinCompile> {
     kotlinOptions.jvmTarget = "17"
 }
 
-*/
 application {
     mainClass.set("MainKt")
 }

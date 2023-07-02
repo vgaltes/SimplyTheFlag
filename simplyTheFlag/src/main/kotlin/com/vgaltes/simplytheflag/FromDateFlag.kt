@@ -1,14 +1,13 @@
 package com.vgaltes.simplytheflag
 
 import java.time.Instant
-import java.util.Date
 
 class FromDateFlag(override val cacheMillis: Long, private val rawParameters: String) : Flag {
     private var validFrom = Instant.MAX
     override val type: String
         get() = FromDateFlag::class.java.typeName
 
-    override fun isEnabled(): Boolean {
+    override fun isEnabled(parameters: Array<out Any?>): Boolean {
         return Instant.now() >= validFrom
     }
 

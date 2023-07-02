@@ -7,13 +7,14 @@ import java.net.URL
 import java.time.Duration
 import java.time.Instant
 
-class SimplyTheFlag(private val valueRetriever: ValueRetriever) {
+
+class SimplyTheFlag(private val valueRetriever: ValueRetriever, vararg packageNames: String) {
 
     private val flagsRetrieved = mutableMapOf<String, CachedValue>()
     private val availableFlags = mutableMapOf<String, String>()
     private val lastErrors = mutableMapOf<String, Exception>()
 
-    fun isEnabled(flagName: String): Boolean {
+    fun isEnabled(flagName: String, vararg parameters: Any?): Boolean {
         try {
             lastErrors.remove(flagName)
             val lastRetrievedFlagValue = flagsRetrieved[flagName]
@@ -22,7 +23,7 @@ class SimplyTheFlag(private val valueRetriever: ValueRetriever) {
             val cacheDuration = lastRetrievedFlagValue?.cacheDuration ?: Duration.ZERO
 
             val cachedValue = if(flagRetrievedAt + cacheDuration < Instant.now()) {
-                val value = retrieveFlagValueFromProvider(flagName)
+                val value = retrieveFlagValueFromProvider(flagName, parameters)
                 flagsRetrieved[flagName] = value
                 value
             } else {
@@ -41,13 +42,16 @@ class SimplyTheFlag(private val valueRetriever: ValueRetriever) {
     fun lastError(flagName: String): Exception? = lastErrors[flagName]
 
     init {
-        findFlags()
+        packageNames.forEach {
+            // findFlags(it)
+            getClassesForPackage(it, availableFlags)
+        }
     }
 
-    private fun retrieveFlagValueFromProvider(flagName: String): CachedValue {
+    private fun retrieveFlagValueFromProvider(flagName: String, parameters: Array<out Any?>): CachedValue {
         val rawFlag = valueRetriever.retrieve(flagName)
         val flag = createFlag(rawFlag)
-        val value = flag.isEnabled()
+        val value = flag.isEnabled(parameters)
         return CachedValue(Instant.now(), Duration.ofMillis(flag.cacheMillis), value)
     }
 
@@ -63,9 +67,8 @@ class SimplyTheFlag(private val valueRetriever: ValueRetriever) {
 
     data class CachedValue(val retrievedAt: Instant, val cacheDuration: Duration, val value: Boolean)
 
-    private fun findFlags() {
+    private fun findFlags(packageName: String) {
         // Translate the package name into an absolute path
-        val packageName = "com.vgaltes.simplytheflag"
         var name = packageName
         if (!name.startsWith("/")) {
             name = "/$name"
@@ -98,7 +101,7 @@ class SimplyTheFlag(private val valueRetriever: ValueRetriever) {
 interface Flag {
     val type: String
     val cacheMillis: Long
-    fun isEnabled(): Boolean
+    fun isEnabled(parameters: Array<out Any?>): Boolean
 }
 
 interface ValueRetriever {

@@ -17,7 +17,7 @@ fun main(args: Array<String>) {
     val credentialsProvider =
         ProfileCredentialsProvider.builder().profileName("personal").build()
 
-    val featureToggles = SimplyTheFlag(SSMValueRetriever(buildClient(credentialsProvider, Region.EU_WEST_1)))
+    val featureToggles = SimplyTheFlag(SSMValueRetriever(buildClient(credentialsProvider, Region.EU_WEST_1)), "com.vgaltes.simplytheflag")
     var value = featureToggles.isEnabled(parameterName)
     println(value)
     value = featureToggles.isEnabled(parameterName)

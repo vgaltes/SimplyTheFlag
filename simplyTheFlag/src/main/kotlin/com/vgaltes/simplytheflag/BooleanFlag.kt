@@ -5,7 +5,7 @@ class BooleanFlag(override val cacheMillis: Long, private val rawParameters: Str
     override val type: String
         get() = BooleanFlag::class.java.typeName
 
-    override fun isEnabled(): Boolean {
+    override fun isEnabled(parameters: Array<out Any?>): Boolean {
         return enabled
     }
 

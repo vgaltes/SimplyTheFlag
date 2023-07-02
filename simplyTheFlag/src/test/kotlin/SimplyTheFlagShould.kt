@@ -24,7 +24,7 @@ class SimplyTheFlagShould: StringSpec( {
         val name = "name-${UUID.randomUUID()}"
         val value = booleanFlagWithCache(2000, true)
         val client = buildClient(ssmLocalStack)
-        val flags = SimplyTheFlag(SSMValueRetriever(client))
+        val flags = SimplyTheFlag(SSMValueRetriever(client), "com.vgaltes.simplytheflag")
 
         client.putParameter(PutParameterRequest.builder().type(ParameterType.STRING).name(name).value(value).build()).join()
 
@@ -35,7 +35,7 @@ class SimplyTheFlagShould: StringSpec( {
         val name = "name-${UUID.randomUUID()}"
         val value = dateFromFlag(Instant.now().minusSeconds(60))
         val client = buildClient(ssmLocalStack)
-        val flags = SimplyTheFlag(SSMValueRetriever(client))
+        val flags = SimplyTheFlag(SSMValueRetriever(client), "com.vgaltes.simplytheflag")
 
         client.putParameter(PutParameterRequest.builder().type(ParameterType.STRING).name(name).value(value).build()).join()
 
@@ -46,7 +46,7 @@ class SimplyTheFlagShould: StringSpec( {
         val name = "name-${UUID.randomUUID()}"
         var value = booleanFlagWithCache(0, true)
         val client = buildClient(ssmLocalStack)
-        val flags = SimplyTheFlag(SSMValueRetriever(client))
+        val flags = SimplyTheFlag(SSMValueRetriever(client), "com.vgaltes.simplytheflag")
 
         client.putParameter(PutParameterRequest.builder().type(ParameterType.STRING).name(name).value(value).build()).join()
         flags.isEnabled(name) shouldBe true
@@ -64,7 +64,7 @@ class SimplyTheFlagShould: StringSpec( {
         val name = "name-${UUID.randomUUID()}"
         val invalidValue = invalidBooleanFlag()
         val client = buildClient(ssmLocalStack)
-        val flags = SimplyTheFlag(SSMValueRetriever(client))
+        val flags = SimplyTheFlag(SSMValueRetriever(client), "com.vgaltes.simplytheflag")
 
         client.putParameter(PutParameterRequest.builder().type(ParameterType.STRING).name(name).value(invalidValue).build()).join()
 
