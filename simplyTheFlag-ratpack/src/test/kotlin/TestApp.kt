@@ -2,7 +2,6 @@ import com.google.inject.AbstractModule
 import com.google.inject.Provides
 import com.vgaltes.simplytheflag.SSMValueRetriever
 import com.vgaltes.simplytheflag.SimplyTheFlag
-import com.vgaltes.simplytheflag.SimplyTheFlag.FlagState.ENABLED
 import org.testcontainers.containers.localstack.LocalStackContainer
 import org.testcontainers.utility.DockerImageName
 import ratpack.guice.Guice
@@ -84,7 +83,7 @@ class TestModule : AbstractModule() {
 
 class HeaderExistsHandler(private val flag: SimplyTheFlag) : Handler {
     override fun handle(ctx: Context) {
-        if(flag.state("headerExistsFlag", ctx) == ENABLED)
+        if(flag.state("headerExistsFlag", ctx).getOrNull() == true)
             ctx.response.status(200).send("headerExists")
         else ctx.response.status(200).send("headerNotExists")
     }
@@ -92,7 +91,7 @@ class HeaderExistsHandler(private val flag: SimplyTheFlag) : Handler {
 
 class HeaderHasValueHandler(private val flag: SimplyTheFlag) : Handler {
     override fun handle(ctx: Context) {
-        if(flag.state("headerHasValueFlag", ctx) == ENABLED)
+        if(flag.state("headerHasValueFlag", ctx).getOrNull() == true)
             ctx.response.status(200).send("headerHasValue")
         else ctx.response.status(200).send("headerNotHasValue")
     }

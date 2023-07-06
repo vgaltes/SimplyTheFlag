@@ -7,11 +7,9 @@ import java.time.Instant
 class SimplyTheFlag(private val valueRetriever: ValueRetriever, vararg additionalPackageNames: String) {
     private val flagsRetrieved = mutableMapOf<String, CachedValue<Boolean>>()
     private val availableFlags = mutableMapOf<String, String>()
-    private val lastErrors = mutableMapOf<String, Exception>()
 
-    fun state(flagName: String, vararg parameters: Any?): FlagState {
+    fun state(flagName: String, vararg parameters: Any?): Result<Boolean> {
         try {
-            lastErrors.remove(flagName)
             val lastRetrievedFlagValue = flagsRetrieved[flagName]
 
             val flagRetrievedAt = lastRetrievedFlagValue?.retrievedAt ?: Instant.MIN
@@ -25,15 +23,16 @@ class SimplyTheFlag(private val valueRetriever: ValueRetriever, vararg additiona
                 flagsRetrieved[flagName]!!
             }
 
-            return FlagState.from(cachedValue.value)
+            return Result.success(cachedValue.value)
         }
         catch (e: Exception) {
-            lastErrors[flagName] = e
-            return FlagState.ERROR
+            return Result.failure(e)
         }
     }
 
-    fun lastError(flagName: String): Exception? = lastErrors[flagName]
+    fun value(configName: String): String {
+        TODO("Not yet implemented")
+    }
 
     init {
         getClassesForPackage("com.vgaltes.simplytheflag", availableFlags)
@@ -59,17 +58,10 @@ class SimplyTheFlag(private val valueRetriever: ValueRetriever, vararg additiona
         return flag as Flag
     }
 
+
+
     class CachedValue<T>(val retrievedAt: Instant, val cacheDuration: Duration, val value: T)
 
-    enum class FlagState {
-        ENABLED,
-        DISABLED,
-        ERROR;
-
-        companion object {
-            fun from(value: Boolean) : FlagState = if (value) ENABLED else DISABLED
-        }
-    }
 }
 
 interface Flag {

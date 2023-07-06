@@ -1,10 +1,9 @@
 import TestContainers.ssmLocalStack
 import com.vgaltes.simplytheflag.SSMValueRetriever
 import com.vgaltes.simplytheflag.SimplyTheFlag
-import com.vgaltes.simplytheflag.SimplyTheFlag.FlagState.*
 import io.kotest.core.spec.style.StringSpec
+import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
-import io.kotest.matchers.shouldNotBe
 import org.testcontainers.containers.localstack.LocalStackContainer
 import org.testcontainers.utility.DockerImageName
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials
@@ -29,8 +28,22 @@ class SimplyTheFlagShould: StringSpec( {
 
         client.putParameter(PutParameterRequest.builder().type(ParameterType.STRING).name(name).value(value).build()).join()
 
-        flags.state(name) shouldBe ENABLED
+        val state = flags.state(name)
+        state.isSuccess shouldBe true
+        state.getOrNull() shouldBe true
     }
+
+//    "should read a config value" {
+//        val name = "name-${UUID.randomUUID()}"
+//        val configValue = "name-${UUID.randomUUID()}"
+//        val value = configValueWithCache(2000, configValue)
+//        val client = buildClient(ssmLocalStack)
+//        val flags = SimplyTheFlag(SSMValueRetriever(client))
+//
+//        client.putParameter(PutParameterRequest.builder().type(ParameterType.STRING).name(name).value(value).build()).join()
+//
+//        flags.value(name) shouldBe configValue
+//    }
 
     "should read a fromDate flag" {
         val name = "name-${UUID.randomUUID()}"
@@ -40,7 +53,9 @@ class SimplyTheFlagShould: StringSpec( {
 
         client.putParameter(PutParameterRequest.builder().type(ParameterType.STRING).name(name).value(value).build()).join()
 
-        flags.state(name) shouldBe ENABLED
+        val state = flags.state(name)
+        state.isSuccess shouldBe true
+        state.getOrNull() shouldBe true
     }
 
     "should take cache into account" {
@@ -50,15 +65,21 @@ class SimplyTheFlagShould: StringSpec( {
         val flags = SimplyTheFlag(SSMValueRetriever(client))
 
         client.putParameter(PutParameterRequest.builder().type(ParameterType.STRING).name(name).value(value).build()).join()
-        flags.state(name) shouldBe ENABLED
+        var state = flags.state(name)
+        state.isSuccess shouldBe true
+        state.getOrNull() shouldBe true
 
         value = booleanFlagWithCache(2000, false)
         client.putParameter(PutParameterRequest.builder().type(ParameterType.STRING).name(name).value(value).overwrite(true).build()).join()
-        flags.state(name) shouldBe DISABLED
+        state = flags.state(name)
+        state.isSuccess shouldBe true
+        state.getOrNull() shouldBe false
 
         value = booleanFlagWithCache(2000, true)
         client.putParameter(PutParameterRequest.builder().type(ParameterType.STRING).name(name).value(value).overwrite(true).build()).join()
-        flags.state(name) shouldBe DISABLED
+        state = flags.state(name)
+        state.isSuccess shouldBe true
+        state.getOrNull() shouldBe false
     }
 
     "should return false and error if the configuration of the flag is invalid" {
@@ -69,14 +90,15 @@ class SimplyTheFlagShould: StringSpec( {
 
         client.putParameter(PutParameterRequest.builder().type(ParameterType.STRING).name(name).value(invalidValue).build()).join()
 
-        flags.state(name) shouldBe ERROR
-        flags.lastError(name) shouldNotBe null
+        var state = flags.state(name)
+        state.isSuccess shouldBe false
+        state.exceptionOrNull().shouldNotBeNull()
 
         val validValue = booleanFlagWithCache(2000, true)
         client.putParameter(PutParameterRequest.builder().type(ParameterType.STRING).name(name).value(validValue).overwrite(true).build()).join()
 
-        flags.state(name) shouldBe ENABLED
-        flags.lastError(name) shouldBe null
+        state = flags.state(name)
+        state.isSuccess shouldBe true
     }
 })
 
@@ -96,6 +118,16 @@ private fun booleanFlagWithCache(millis: Long, enabled: Boolean): String = """
             "cacheMillis": $millis,
             "parameters": {
                 "enabled": $enabled
+            }
+        }
+    """.trimIndent()
+
+private fun configValueWithCache(millis: Long, value: String): String = """
+        {
+            "type": "Config",
+            "cacheMillis": $millis,
+            "parameters": {
+                "enabled": "$value"
             }
         }
     """.trimIndent()
