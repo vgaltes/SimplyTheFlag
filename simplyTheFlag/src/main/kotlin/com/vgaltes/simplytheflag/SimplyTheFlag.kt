@@ -5,7 +5,7 @@ import java.time.Instant
 
 
 class SimplyTheFlag(private val valueRetriever: ValueRetriever, vararg additionalPackageNames: String) {
-    private val flagsRetrieved = mutableMapOf<String, CachedValue>()
+    private val flagsRetrieved = mutableMapOf<String, CachedValue<Boolean>>()
     private val availableFlags = mutableMapOf<String, String>()
     private val lastErrors = mutableMapOf<String, Exception>()
 
@@ -42,7 +42,7 @@ class SimplyTheFlag(private val valueRetriever: ValueRetriever, vararg additiona
         }
     }
 
-    private fun retrieveFlagValueFromProvider(flagName: String, parameters: Array<out Any?>): CachedValue {
+    private fun retrieveFlagValueFromProvider(flagName: String, parameters: Array<out Any?>): CachedValue<Boolean> {
         val rawFlag = valueRetriever.retrieve(flagName)
         val flag = createFlag(rawFlag)
         val value = flag.isEnabled(parameters)
@@ -54,12 +54,12 @@ class SimplyTheFlag(private val valueRetriever: ValueRetriever, vararg additiona
         val type = flagDefinition["type"].asText()
         val cacheMillis = flagDefinition["cacheMillis"].asLong()
         val rawParameters = flagDefinition["parameters"].toString()
-        val booleanFlag = Class.forName(availableFlags[type]).constructors.find { it.parameterCount == 2 }
+        val flag = Class.forName(availableFlags[type]).constructors.find { it.parameterCount == 2 }
             ?.newInstance(cacheMillis, rawParameters)
-        return booleanFlag as Flag
+        return flag as Flag
     }
 
-    data class CachedValue(val retrievedAt: Instant, val cacheDuration: Duration, val value: Boolean)
+    class CachedValue<T>(val retrievedAt: Instant, val cacheDuration: Duration, val value: T)
 
     enum class FlagState {
         ENABLED,
