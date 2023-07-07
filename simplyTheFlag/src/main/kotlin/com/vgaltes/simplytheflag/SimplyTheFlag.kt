@@ -3,7 +3,6 @@ package com.vgaltes.simplytheflag
 import java.time.Duration
 import java.time.Instant
 
-
 class SimplyTheFlag(private val valueRetriever: ValueRetriever) {
     private val flagsRetrieved = mutableMapOf<String, CachedValue<Boolean>>()
     private val configValuesRetrieved = mutableMapOf<String, CachedValue<String>>()
@@ -82,14 +81,14 @@ class SimplyTheFlag(private val valueRetriever: ValueRetriever) {
         return flag as Flag
     }
 
-    private fun createConfigValue(rawFlag: String): StringConfig {
+    private fun createConfigValue(rawFlag: String): ConfigValue {
         val flagDefinition = JacksonModule.OBJECT_MAPPER.readTree(rawFlag)
         val type = flagDefinition["type"].asText()
         val cacheMillis = flagDefinition["cacheMillis"].asLong()
         val rawParameters = flagDefinition["parameters"].toString()
         val configValue = Class.forName(availableConfigs[type]).constructors.find { it.parameterCount == 2 }
             ?.newInstance(cacheMillis, rawParameters)
-        return configValue as StringConfig
+        return configValue as ConfigValue
     }
 
     class CachedValue<T>(val retrievedAt: Instant, val cacheDuration: Duration, val value: T)

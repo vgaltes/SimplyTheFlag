@@ -56,42 +56,12 @@ class SimplyTheFlagForConfigShould: StringSpec( {
     }
 })
 
-private fun dateFromFlag(validFrom: Instant): String = """
-        {
-            "type": "FromDateFlag",
-            "cacheMillis": 2000,
-            "parameters": {
-                "validFrom": "$validFrom"
-            }
-        }
-    """.trimIndent()
-
-private fun booleanFlagWithCache(millis: Long, enabled: Boolean): String = """
-        {
-            "type": "BooleanFlag",
-            "cacheMillis": $millis,
-            "parameters": {
-                "enabled": $enabled
-            }
-        }
-    """.trimIndent()
-
 private fun configValueWithCache(millis: Long, value: String): String = """
         {
             "type": "StringConfig",
             "cacheMillis": $millis,
             "parameters": {
                 "value": "$value"
-            }
-        }
-    """.trimIndent()
-
-private fun invalidBooleanFlag(): String = """
-        {
-            "type": "BooleanFlag",
-            "cacheMillis": 2000,
-            "parameters": {
-                "enabled_wrongly_written": true
             }
         }
     """.trimIndent()
