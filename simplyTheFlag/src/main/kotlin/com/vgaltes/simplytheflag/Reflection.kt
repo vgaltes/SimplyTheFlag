@@ -15,7 +15,8 @@ import java.util.jar.JarFile
 @Throws(ClassNotFoundException::class)
 private fun checkDirectory(
     directory: File, pckgname: String,
-    availableFlags: MutableMap<String, String>
+    availableFlags: MutableMap<String, String>,
+    availableConfigs: MutableMap<String, String>
 ) {
     var tmpDirectory: File
     if (directory.exists() && directory.isDirectory) {
@@ -29,6 +30,10 @@ private fun checkDirectory(
                     if (isFlag) {
                         availableFlags[maybeFlag.simpleName] = maybeFlag.typeName
                     }
+                    val isConfig = maybeFlag.interfaces.any { i -> i.simpleName == ConfigValue::class.java.simpleName }
+                    if (isConfig) {
+                        availableConfigs[maybeFlag.simpleName] = maybeFlag.typeName
+                    }
                 } catch (e: NoClassDefFoundError) {
                     // do nothing. this class hasn't been found by the
                     // loader, and we don't care.
@@ -36,7 +41,7 @@ private fun checkDirectory(
             } else if (File(directory, file).also { tmpDirectory = it }
                     .isDirectory
             ) {
-                checkDirectory(tmpDirectory, "$pckgname.$file", availableFlags)
+                checkDirectory(tmpDirectory, "$pckgname.$file", availableFlags, availableConfigs)
             }
         }
     }
@@ -47,7 +52,8 @@ private fun checkDirectory(
 private fun checkJarFile(
     connection: JarURLConnection,
     pckgname: String,
-    availableFlags: MutableMap<String, String>
+    availableFlags: MutableMap<String, String>,
+    availableConfigs: MutableMap<String, String>,
 ) {
     val jarFile: JarFile = connection.getJarFile()
     val entries: Enumeration<JarEntry> = jarFile.entries()
@@ -58,11 +64,14 @@ private fun checkJarFile(
         if (name.contains(".class")) {
             name = name.substring(0, name.length - 6).replace('/', '.')
             if (name.contains(pckgname)) {
-                // classes.add(Class.forName(name))
                 val maybeFlag = Class.forName(name)
                 val isFlag = maybeFlag.interfaces.any { i -> i.simpleName == Flag::class.java.simpleName }
                 if (isFlag) {
                     availableFlags[maybeFlag.simpleName] = maybeFlag.typeName
+                }
+                val isConfig = maybeFlag.interfaces.any { i -> i.simpleName == ConfigValue::class.java.simpleName }
+                if (isConfig) {
+                    availableConfigs[maybeFlag.simpleName] = maybeFlag.typeName
                 }
             }
         }
@@ -70,8 +79,7 @@ private fun checkJarFile(
 }
 
 @Throws(ClassNotFoundException::class)
-fun getClassesForPackage(pckgname: String, availableFlags: MutableMap<String, String>) {
-    val classes = ArrayList<Class<*>>()
+fun getClassesForPackage(pckgname: String, availableFlags: MutableMap<String, String>, availableConfigs: MutableMap<String, String>) {
     try {
         val cld = Thread.currentThread()
             .contextClassLoader ?: throw ClassNotFoundException("Can't get class loader.")
@@ -85,10 +93,10 @@ fun getClassesForPackage(pckgname: String, availableFlags: MutableMap<String, St
             try {
                 connection = url!!.openConnection()
                 if (connection is JarURLConnection) {
-                    checkJarFile(connection, pckgname, availableFlags)
+                    checkJarFile(connection, pckgname, availableFlags, availableConfigs)
                 } else {
                     try {
-                        checkDirectory(File(URLDecoder.decode(url!!.path, "UTF-8")), pckgname, availableFlags)
+                        checkDirectory(File(URLDecoder.decode(url!!.path, "UTF-8")), pckgname, availableFlags, availableConfigs)
                     } catch (ex: UnsupportedEncodingException) {
                         throw ClassNotFoundException("$pckgname does not appear to be a valid package (Unsupported encoding)", ex)
                     }

@@ -47,7 +47,7 @@ class TestModule : AbstractModule() {
     fun getSimplyTheFlag(): SimplyTheFlag {
         val valueRetriever = SSMValueRetriever(buildClient(TestApp.localStackContainer))
 
-        return SimplyTheFlag(valueRetriever,"com.vgaltes.simplytheflagratpack")
+        return SimplyTheFlag(valueRetriever)
     }
 
     @Singleton
